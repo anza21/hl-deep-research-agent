@@ -27,7 +27,7 @@ const __dirname = dirname(__filename);
 dotenv.config();
 const hostname =
   process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost";
-const port = process.env.PORT || 8080;
+const port = process.env.PORT || 3000;
 
 const app = express();
 app.use(express.json());

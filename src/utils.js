@@ -120,10 +120,8 @@ const queryChatCompletion = async (
   const url = `https://${endpoint}/chat/completions`;
   const apiKeys = {
     "api.perplexity.ai": process.env.PERPLEXITY_API_KEY,
-    // add your own provider - api keys pair here
-    // "openrouter.ai/api/v1": process.env.OPENROUTER_API_KEY,
+    "openrouter.ai/api/v1": process.env.OPENROUTER_API_KEY,
   };
-
   const maxRetries = params.retries || 3;
   let currentRetry = 0;
   let lastError = null;
@@ -136,6 +134,8 @@ const queryChatCompletion = async (
         messages: messages,
         ...params.modelParams,
       };
+
+      console.log(`[DEBUG] Using model: ${model}, endpoint: ${endpoint}`);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 mins timeout

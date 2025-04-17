@@ -15,29 +15,31 @@ const agentsConfigs = JSON.parse(
 const agentSecret = JSON.parse(
   readFileSync(resolve(__dirname, "..", "..", "agentSecret.json"), "utf-8")
 );
+
 const sdkAgents = {};
 
 for (const agentId in agentsConfigs) {
   const secrets = agentSecret[agentId];
+
   if (!secrets) {
     throw new Error(`Secrets not provided for ${agentId}`);
   }
 
-  const privateKey =
-    process.env.ISMAINNET === "TRUE"
-      ? secrets.privateKey
-      : secrets.privateKeyTestnet;
+  const isMainnet = process.env.ISMAINNET?.toLowerCase() === "true";
+  const privateKey = isMainnet ? secrets.privateKey : secrets.privateKeyTestnet;
   const walletAddress = secrets.accountAddress;
 
-  if (!privateKey || !walletAddress)
-    throw new Error(`Environment variables not provided for ${agentId}`);
+  if (!privateKey || !walletAddress) {
+    throw new Error(`Secrets not provided or invalid for ${agentId}`);
+  }
 
   sdkAgents[agentId] = new Hyperliquid({
     enableWs: false,
     privateKey,
-    testnet: process.env.ISMAINNET !== "TRUE",
+    testnet: !isMainnet,
     walletAddress,
   });
+
   await sdkAgents[agentId].connect();
 }
 

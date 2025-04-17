@@ -28,14 +28,12 @@ export const getLatestCOT = async (agentId, rootDir) => {
       .filter((log) => log.endsWith(".json"))
       .map((log) => log.split(".")[0]);
 
-    // Find latest research log (now with sectors in the name)
     const researchLogFileName = logs
       .filter((log) => log.startsWith("deepresearch-sectors"))
       ?.map((log) => Number(log.replace("deepresearch-sectors-", "")))
       .filter((log) => log >= lastResearchLog)
       ?.sort((a, b) => b - a)[0];
 
-    // Find latest trade log
     const tradeLogFileName = logs
       .filter((log) => log.startsWith("deeptrade"))
       ?.map((log) => Number(log.replace("deeptrade-", "")))
@@ -51,13 +49,10 @@ export const getLatestCOT = async (agentId, rootDir) => {
         `deepresearch-sectors-${researchLogFileName.toString()}.json`
       );
       const researchLog = await readJsonFile(researchLogPath);
-
       const thinkMatch = researchLog.choices[0].message.content.match(
         /<think>(.*?)<\/think>/s
       );
-      if (thinkMatch) {
-        cot = thinkMatch[1];
-      }
+      if (thinkMatch) cot = thinkMatch[1];
     }
 
     if (tradeLogFileName) {
@@ -67,13 +62,10 @@ export const getLatestCOT = async (agentId, rootDir) => {
         `deeptrade-${tradeLogFileName.toString()}.json`
       );
       const tradeLog = await readJsonFile(tradeLogPath);
-
       const thinkMatch = tradeLog.choices[0].message.content.match(
         /<think>(.*?)<\/think>/s
       );
-      if (thinkMatch) {
-        cot += thinkMatch[1];
-      }
+      if (thinkMatch) cot += thinkMatch[1];
     }
 
     return cot;
@@ -89,15 +81,10 @@ export const getLatestDiary = async (agentId, rootDir) => {
     const diaryPath = join(rootDir, `../data/${agentId}/diary/diary.json`);
     const diaryData = await readJsonFile(diaryPath);
 
-    // Find the latest date (keys are in DD/MM/YYYY format)
     const dates = Object.keys(diaryData).sort((a, b) => {
-      // Convert DD/MM/YYYY to YYYY/MM/DD for proper comparison
       const [dayA, monthA, yearA] = a.split("/");
       const [dayB, monthB, yearB] = b.split("/");
-      return (
-        new Date(`${yearB}-${monthB}-${dayB}`) -
-        new Date(`${yearA}-${monthA}-${dayA}`)
-      );
+      return new Date(`${yearB}-${monthB}-${dayB}`) - new Date(`${yearA}-${monthA}-${dayA}`);
     });
 
     if (dates.length > 0) {
@@ -138,7 +125,7 @@ export const getPromptConfig = async (promptDir) => {
   }
 };
 
-// Agent endpoint handler
+// ✅ Agent endpoint handler (με fallback)
 export const agentHandler = (rootDir) => async (req, res) => {
   const agentId = req.body && req.body.agent_id;
 
@@ -150,7 +137,6 @@ export const agentHandler = (rootDir) => async (req, res) => {
 
   try {
     let config;
-
     try {
       config = await readJsonFile(configPath);
     } catch (error) {
@@ -158,20 +144,34 @@ export const agentHandler = (rootDir) => async (req, res) => {
       return res.status(404).json({ message: `Agent ${agentId} not found` });
     }
 
-    // Construct the response
     const prompts = await getPromptConfig(join(rootDir, "../src/prompt"));
-    const { balance, trade_count, clearinghouseState, openOrders, pnl } =
-      await getHyperliquidData(agentSecret[agentId].accountAddress);
+
+    let balance = 0;
+    let trade_count = 0;
+    let clearinghouseState = {};
+    let openOrders = [];
+    let pnl = [];
+
+    try {
+      const result = await getHyperliquidData(agentSecret[agentId].accountAddress);
+      balance = result.balance;
+      trade_count = result.trade_count;
+      clearinghouseState = result.clearinghouseState;
+      openOrders = result.openOrders;
+      pnl = result.pnl;
+    } catch (err) {
+      console.warn(`⚠️ Mocking data for user ${agentSecret[agentId].accountAddress} due to error: ${err.message}`);
+    }
 
     const response = {
       ...config,
       wallet_address: agentSecret[agentId].accountAddress,
-      trade_count: trade_count,
-      balance: balance,
-      clearinghouseState: clearinghouseState,
-      pnl: pnl,
-      openOrders: openOrders,
-      prompts: prompts,
+      trade_count,
+      balance,
+      clearinghouseState,
+      pnl,
+      openOrders,
+      prompts,
       created_at: Date.parse("2025-03-14T00:00:00Z"),
       updated_at: Date.now(),
     };
@@ -183,14 +183,11 @@ export const agentHandler = (rootDir) => async (req, res) => {
   }
 };
 
-// New dedicated COT endpoint handler
+// Dedicated COT endpoint
 export const cotHandler = (rootDir) => async (req, res) => {
   try {
     const agentId = req.body && req.body.agent_id;
-
-    if (!agentId) {
-      return res.status(400).json({ message: "agent_id is required" });
-    }
+    if (!agentId) return res.status(400).json({ message: "agent_id is required" });
 
     const cot = await getLatestCOT(agentId, rootDir);
     res.json({ cot });
@@ -200,14 +197,11 @@ export const cotHandler = (rootDir) => async (req, res) => {
   }
 };
 
-// Diary endpoint handler
+// Diary endpoint
 export const diaryHandler = (rootDir) => async (req, res) => {
   try {
     const agentId = req.body && req.body.agent_id;
-
-    if (!agentId) {
-      return res.status(400).json({ message: "agent_id is required" });
-    }
+    if (!agentId) return res.status(400).json({ message: "agent_id is required" });
 
     const diaryData = await getLatestDiary(agentId, rootDir);
     res.json(diaryData);
@@ -217,11 +211,12 @@ export const diaryHandler = (rootDir) => async (req, res) => {
   }
 };
 
-// Health check endpoint handler
+// Health endpoint
 export const healthHandler = (req, res) => {
   res.json({ status: "ok", timestamp: Date.now() });
 };
 
+// Optional test endpoint
 export const testResultHandler = (req, res) => {
-  //
+  // unused
 };

@@ -1,11 +1,11 @@
 {
   "name": "hl-deepresearch-agent",
   "description": "Hyperliquid Deep Research Agent",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "main": "index.js",
   "type": "module",
+"scripts": {
+  "start": "node src/index.js"
+},
   "dependencies": {
     "dotenv": "^16.4.7",
     "ethers": "^6.13.5",
