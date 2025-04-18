@@ -117,6 +117,11 @@ const queryChatCompletion = async (
     [endpoint, model] = process.env.DEBUG_MODEL.split("||");
   }
 
+  // Fix model → endpoint logic override
+  if (model === "openai/gpt-3.5-turbo") {
+    endpoint = "openrouter.ai/api/v1";
+  }
+
   const url = `https://${endpoint}/chat/completions`;
   const apiKeys = {
     "api.perplexity.ai": process.env.PERPLEXITY_API_KEY,

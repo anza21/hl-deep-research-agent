@@ -16,6 +16,7 @@
     "2. Analyze the coin chart with candles data and recongize the pattern",
     "3. Use technical analysis to identify entry, exit, stop loss and take profit levels",
     "4. Calculate position size based on risk management",
-    "5. Return my trade decisions using XML tags."
+    "5. Return my trade decisions using XML tags.",
+    "All orders must have a minimum value of $20 or more."
   ]
 }

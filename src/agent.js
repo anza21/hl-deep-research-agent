@@ -44,7 +44,13 @@ class HLDeepResearchAgent {
         true
       );
       const { direction, marketReasons } = await this.researchMarketBelief();
+      if (!direction || !direction.textContent || !marketReasons || !marketReasons.textContent) {
+        this.broadcast("❌ Market belief extraction failed. Skipping sector research.", "ERROR");
+        return;
+      }
+
       const sectors = await this.researchSectors(direction, marketReasons);
+
       for (let sector of sectors.children) {
         const name = sector.querySelector("name").textContent;
         const reasons = sector.querySelector("reasons").textContent;
@@ -66,23 +72,30 @@ class HLDeepResearchAgent {
   async researchMarketBelief() {
     this.broadcast("---\nResearching market belief...");
     const research_prompt = getPrompt("deepresearch-market", {});
+
+    // ➤ Φτιάχνουμε σωστά τα endpoint/model
+    let endpoint, model;
+    if (this.config.researchModel.includes("||")) {
+      [endpoint, model] = this.config.researchModel.split("||");
+    } else {
+      endpoint = "openrouter.ai/api/v1"; // DEFAULT endpoint
+      model = this.config.researchModel;
+    }
+
     const response = await queryChatCompletion(
-      this.config.researchModel.split("||")[0],
-      this.config.researchModel.split("||")[1],
+      endpoint,
+      model,
       [{ role: "user", content: research_prompt }],
       { retries: this.config.retryLimit }
     );
 
-    await this.storeAgentData(
-      "logs",
-      `deepresearch-market-${this.runId}`,
-      response
-    );
+    await this.storeAgentData("logs", `deepresearch-market-${this.runId}`, response);
 
     const research = response.choices[0].message.content;
     const direction = extractDOM(research, "direction");
     const marketReasons = extractDOM(research, "reasons");
     const marketApplicability = extractDOM(research, "applicability");
+
     this.broadcast(
       `Identified market belief: ${direction.textContent} (${marketApplicability.textContent} days), ${marketReasons.textContent}`
     );
@@ -98,9 +111,13 @@ class HLDeepResearchAgent {
       marketReasons,
       allSectors: this.config.sectors,
     });
+    const [endpoint, model] = this.config.researchModel.includes("||")
+      ? this.config.researchModel.split("||")
+      : ["openrouter.ai/api/v1", this.config.researchModel];
+
     const response = await queryChatCompletion(
-      this.config.researchModel.split("||")[0],
-      this.config.researchModel.split("||")[1],
+      endpoint,
+      model,
       [{ role: "user", content: research_prompt }],
       { retries: this.config.retryLimit }
     );
@@ -228,15 +245,24 @@ class HLDeepResearchAgent {
       `Researching ${this.config.researchParams.coinLookupLimit} coins in ${sector}, identifying ${this.config.researchParams.identifyCoinLimit} coins...`
     );
 
+    let endpoint, model;
+    if (this.config.researchModel.includes("||")) {
+      [endpoint, model] = this.config.researchModel.split("||");
+    } else {
+      endpoint = "openrouter.ai/api/v1"; // DEFAULT endpoint
+      model = this.config.researchModel;
+    }
+
     const response = await queryChatCompletion(
-      this.config.researchModel.split("||")[0],
-      this.config.researchModel.split("||")[1],
+      endpoint,
+      model,
       [
         { role: "system", content: research_system },
         { role: "user", content: research_prompt },
       ],
       { retries: this.config.retryLimit }
     );
+
     this.storeAgentData("logs", `deepresearch-sectors-${this.runId}`, response);
 
     const research = response.choices[0].message.content;
@@ -372,15 +398,24 @@ class HLDeepResearchAgent {
       candles: candles.join("\n"),
     });
     this.broadcast("Researching TA-based trade decisions...");
+    let endpoint, model;
+    if (this.config.tradeModel.includes("||")) {
+      [endpoint, model] = this.config.tradeModel.split("||");
+    } else {
+      endpoint = "openrouter.ai/api/v1"; // DEFAULT endpoint
+      model = this.config.tradeModel;
+    }
+
     const response = await queryChatCompletion(
-      this.config.tradeModel.split("||")[0],
-      this.config.tradeModel.split("||")[1],
+      endpoint,
+      model,
       [
         { role: "system", content: trade_system },
         { role: "user", content: trade_prompt },
       ],
       { retries: this.config.retryLimit }
     );
+
     await this.storeAgentData("logs", `deeptrade-${this.runId}`, response);
     const content = response.choices[0].message.content;
     for (const tool of trade_tools) {

@@ -22,3 +22,6 @@ fly-deploy.sh
 ecosystem.config.cjs
 .dockerignore
 Dockerfile
+# Logs and snapshots
+*.log
+git_snapshot.sh

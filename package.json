@@ -3,15 +3,16 @@
   "description": "Hyperliquid Deep Research Agent",
   "main": "index.js",
   "type": "module",
-"scripts": {
-  "start": "node src/index.js"
-},
+  "scripts": {
+    "start": "node src/index.js"
+  },
   "dependencies": {
     "dotenv": "^16.4.7",
     "ethers": "^6.13.5",
     "express": "^4.21.2",
     "hyperliquid": "1.6.2",
-    "jsdom": "^26.0.0"
+    "jsdom": "^26.0.0",
+    "node-fetch": "^3.3.2"
   },
   "private": true
 }

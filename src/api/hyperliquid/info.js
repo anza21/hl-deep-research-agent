@@ -1,5 +1,14 @@
 import { sdkAgents } from "./init.js";
-import sectors from "./coinsInSectors.json" with { type: "json" };
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const sectors = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "./coinsInSectors.json"), "utf-8")
+);
 
 const getCoinsByFundingRate = async (sector, minVolume) => {
   const sdk = Object.values(sdkAgents)[0];
